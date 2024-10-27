@@ -28,6 +28,7 @@ export const CoinDozer: React.FC = () => {
          id: Math.random().toString(36).substring(7),
          position: [Math.random() * 2 - 1, 5, 0],
        };
+       console.log(newCoin);
        socket.emit('insertCoin', newCoin);
      };
 

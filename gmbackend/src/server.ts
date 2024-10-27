@@ -32,8 +32,8 @@ io.on('connection', (socket) => {
     socket.emit('initialState', globalGameState);
 
     socket.on('insertCoin', (coin: Coin) => {
-        globalGameState.coins.push(coin);
-        io.emit('updateGameState', globalGameState);
+    globalGameState.coins.push(coin);
+    io.emit('updateGameState', globalGameState);
     });
 
     socket.on('disconnect', () => {
