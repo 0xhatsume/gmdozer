@@ -2,6 +2,8 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import RAPIER from '@dimforge/rapier3d-compat';
+//import * as RAPIER from '@dimforge/rapier3d-compat/rapier';
+//import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
 import cors from 'cors';
 
 interface PhysicsObject {
@@ -20,6 +22,7 @@ class PhysicsWorld {
         RAPIER.init().then(() => {
             const gravity = { x: 0.0, y: -9.81, z: 0.0 };
             this.world = new RAPIER.World(gravity);
+
             this.bodies = new Map();
 
             // Add static platform and walls
@@ -29,18 +32,56 @@ class PhysicsWorld {
 
     addPlatform() {
         // Add static ground platform
-        const groundColliderDesc = RAPIER.ColliderDesc.cuboid(5.0, 0.25, 4.0);
-        this.world.createCollider(groundColliderDesc);
+        // const groundColliderDesc = RAPIER.ColliderDesc.cuboid(5.0, 0.25, 4.0);
+        // this.world.createCollider(groundColliderDesc);
+
+        // Main platform (floor)
+        const floorBodyDesc = RAPIER.RigidBodyDesc.fixed();
+        const floorBody = this.world.createRigidBody(floorBodyDesc);
+        const floorColliderDesc = RAPIER.ColliderDesc.cuboid(5.0, 0.25, 4.0); // [10/2, 0.5/2, 8/2]
+        //.setTranslation(0, 0, 0);
+        this.world.createCollider(floorColliderDesc, floorBody);
+
+        // Back wall
+        const backWallBodyDesc = RAPIER.RigidBodyDesc.fixed();
+        const backWallBody = this.world.createRigidBody(backWallBodyDesc);
+        const backWallColliderDesc = RAPIER.ColliderDesc.cuboid(5.0, 1.0, 0.1) // [10/2, 2/2, 0.2/2]
+            .setTranslation(0, 1, -4); // Matches front-end position
+        this.world.createCollider(backWallColliderDesc, backWallBody);
+
+        // Left wall
+        const leftWallBodyDesc = RAPIER.RigidBodyDesc.fixed();
+        const leftWallBody = this.world.createRigidBody(leftWallBodyDesc);
+        const leftWallColliderDesc = RAPIER.ColliderDesc.cuboid(0.1, 1.0, 4.0) // [0.2/2, 2/2, 8/2]
+            .setTranslation(-5, 1, 0);
+        this.world.createCollider(leftWallColliderDesc, leftWallBody);
+
+        // Right wall
+        const rightWallBodyDesc = RAPIER.RigidBodyDesc.fixed();
+        const rightWallBody = this.world.createRigidBody(rightWallBodyDesc);
+        const rightWallColliderDesc = RAPIER.ColliderDesc.cuboid(0.1, 1.0, 4.0) // [0.2/2, 2/2, 8/2]
+            .setTranslation(5, 1, 0);
+        this.world.createCollider(rightWallColliderDesc, rightWallBody);
     }
 
     addCoin(coin:Coin) {
         const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
-        .setTranslation(coin.position[0], coin.position[1], coin.position[2]);
+        .setTranslation(coin.position[0], coin.position[1], coin.position[2])
+        .setLinearDamping(0.5)    // Add damping to reduce bouncing
+        .setAngularDamping(0.5);  // Add rotational damping;
         
-        const rigidBody = this.world.createRigidBody(rigidBodyDesc);
-        const colliderDesc = RAPIER.ColliderDesc.cylinder(0.05, 0.4);
+        const rigidBody = this.world.createRigidBody(rigidBodyDesc);        
+        
+        // Adjust cylinder dimensions to match visual coin
+        // args: halfHeight, radius
+        const colliderDesc = RAPIER.ColliderDesc
+            .cylinder(0.05, 0.4)  // [height/2, radius]
+            .setRestitution(0.8)      // Bounciness
+            .setFriction(0.5)         // Surface friction
+            .setDensity(2)         // Mass density
+            ;
+        
         this.world.createCollider(colliderDesc, rigidBody);
-        
         this.bodies.set(coin.id, rigidBody);
     }
 
@@ -92,14 +133,6 @@ interface Coin {
     position: [number, number, number];
     rotation: [number, number, number];
 }
-
-interface GameState {
-    coins: Coin[];
-}
-
-// let globalGameState: GameState = {
-//     coins: [],
-// };
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
