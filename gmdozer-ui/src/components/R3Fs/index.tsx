@@ -1,7 +1,9 @@
 import { useRef } from 'react';
 import { Mesh } from 'three';
 
+export { CameraDebug } from './CameraDebug';
 export { Platform } from './Platform';
+export { CameraControls } from './CameraControls';
 
 export interface CoinType {
     id: string;
