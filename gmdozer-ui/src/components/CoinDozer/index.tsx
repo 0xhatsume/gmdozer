@@ -2,7 +2,7 @@ import React, { useRef,useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import io, { Socket } from 'socket.io-client';
 import { Coin, CoinType, Platform, CameraDebug, CameraControls } from '../R3Fs';
-import { OrbitControls } from '@react-three/drei';
+import { Physics } from '@react-three/rapier';
 
 const socket: Socket = io('http://localhost:4000');
 
@@ -53,27 +53,29 @@ export const CoinDozer: React.FC = () => {
                 fov: 70 }}
                 shadows
               >
-                {/* /* Add the debug component inside Canvas */}
-                <CameraDebug />
+                <Physics debug={false}>
+                  {/* /* Add the debug component inside Canvas */}
+                  <CameraDebug />
 
-                <color attach="background" args={['#f0f0f0']} />
-                <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} intensity={1} />
-                <directionalLight
-                  position={[-2, 5, 2]}
-                  intensity={1}
-                  castShadow
-                />
-                
-                {/* Add Platform */}
-                <Platform />
-                
-                {/* Coins */}
-                {coins.map((coin) => (
-                  <Coin key={coin.id} coin={coin} />
-                ))}
-                
-                <CameraControls/>
+                  <color attach="background" args={['#f0f0f0']} />
+                  <ambientLight intensity={0.5} />
+                  <pointLight position={[10, 10, 10]} intensity={1} />
+                  <directionalLight
+                    position={[-2, 5, 2]}
+                    intensity={1}
+                    castShadow
+                  />
+                  
+                  {/* Add Platform */}
+                  <Platform />
+                  
+                  {/* Coins */}
+                  {coins.map((coin) => (
+                    <Coin key={coin.id} coin={coin} />
+                  ))}
+                  
+                  <CameraControls/>
+                </Physics>
               </Canvas>
             </div>
         </div>
