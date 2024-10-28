@@ -1,35 +1,92 @@
-import React, { useRef,useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import io, { Socket } from 'socket.io-client';
-import { Coin, CoinType, Platform, CameraDebug, CameraControls } from '../R3Fs';
-import { Physics } from '@react-three/rapier';
+import { Coin, CoinType, PhysicsObject, Platform, CameraDebug, CameraControls } from '../R3Fs';
+//import { Physics } from '@react-three/rapier';
 
 const socket: Socket = io('http://localhost:4000');
 
-export const CoinDozer: React.FC = () => {
-
+export const CoinDozer: React.FC = React.memo(() => {
+      //console.log("CoinDozer Component");
+      //const renderCount = useRef(0);
+      
+      // Ref for storing latest physics state without triggering renders
+      const physicsStateRef = useRef<CoinType[]>([]);
+      const rafRef = useRef<number>();
+      // Visual state that triggers renders
       const [coins, setCoins] = useState<CoinType[]>([]);
 
+      // Log only on mount
       useEffect(() => {
-        socket.on('initialState', (state: { coins: Coin[] }) => {
-          setCoins(state.coins);
-        });
-
-        socket.on('updateGameState', (state: { coins: Coin[] }) => {
-          setCoins(state.coins);
-        });
+        console.log("CoinDozer Component Mounted");
       }, []);
 
-      const insertCoin = () => {
+      // Use useCallback for event handlers
+      const handlePhysicsUpdate = useCallback((state: PhysicsObject[]) => {
+        const coins = state.filter((obj: PhysicsObject) => obj.type === 'coin')
+          .map((c)=>{
+            return {
+              id: c.id,
+              position: c.position,
+              rotation: c.rotation
+            }
+        });
+        //console.log("physicsUpdate: ", coins); 
+        //setCoins(coins);
+        physicsStateRef.current = coins;
+      }, []);
+
+      // Update visual state using requestAnimationFrame
+      const updateVisualState = useCallback(() => {
+        setCoins(physicsStateRef.current);
+        rafRef.current = requestAnimationFrame(updateVisualState);
+      }, []);
+
+      // const handleInitialState = useCallback((state: PhysicsObject[]) => {
+      //   const coins = state.filter((obj: PhysicsObject) => obj.type === 'coin')
+      //     .map((c)=>{
+      //       return {
+      //         id: c.id,
+      //         position: c.position,
+      //         rotation: c.rotation
+      //       }
+      //     });
+      //   setCoins(coins);
+      // }, []);
+
+      useEffect(() => {
+        console.log("useEffect for Server Events");
+
+        //socket.on('initialState', handleInitialState);
+        
+        // socket.on('updateGameState', (state: { coins: CoinType[] }) => {
+        //   setCoins(state.coins);
+        // });
+
+        // Replace updateGameState with physicsUpdate
+        socket.on('physicsUpdate', handlePhysicsUpdate);
+        
+        // Start the animation frame loop
+        rafRef.current = requestAnimationFrame(updateVisualState);
+
+        return () => {
+            //socket.off('initialState');
+            socket.off('physicsUpdate');
+            if (rafRef.current) {
+              cancelAnimationFrame(rafRef.current);
+            }
+        };
+
+      }, [handlePhysicsUpdate, updateVisualState]);
+
+      const insertCoin = useCallback(() => {
         const newCoin: CoinType = {
           id: Math.random().toString(36).substring(7),
           position: [Math.random() * 2 - 1, 5, 0],
+          rotation: [0, 0, 0],
         };
-        console.log(newCoin);
         socket.emit('insertCoin', newCoin);
-      };
-
-      console.log("coins from ui: ", coins);
+      }, []);
 
       return (
         <div className="w-full h-screen flex flex-col items-center justify-center">
@@ -53,7 +110,7 @@ export const CoinDozer: React.FC = () => {
                 fov: 70 }}
                 shadows
               >
-                <Physics debug={false}>
+                {/* <Physics debug={false}> */}
                   {/* /* Add the debug component inside Canvas */}
                   <CameraDebug />
 
@@ -70,15 +127,19 @@ export const CoinDozer: React.FC = () => {
                   <Platform />
                   
                   {/* Coins */}
-                  {coins.map((coin) => (
-                    <Coin key={coin.id} coin={coin} />
+                  {coins?.map((coin) => (
+                    <Coin 
+                      key={coin.id} 
+                      position={coin.position} 
+                      rotation={coin.rotation} 
+                      />
                   ))}
                   
                   <CameraControls/>
-                </Physics>
+                {/* </Physics> */}
               </Canvas>
             </div>
         </div>
       );
-};
+});
 

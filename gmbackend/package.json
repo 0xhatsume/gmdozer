@@ -12,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@dimforge/rapier3d": "^0.14.0",
+    "@dimforge/rapier3d-compat": "^0.14.0",
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "socket.io": "^4.8.1"
