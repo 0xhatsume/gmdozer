@@ -21,6 +21,8 @@ class PhysicsWorld {
     private readonly PUSHER_SPEED = 1.0;
     private readonly PUSHER_MIN_Z = -3.0;
     private readonly PUSHER_MAX_Z = -1.0;
+    private readonly KILL_ZONE_Y = -2.0;  // Height below which coins are removed
+
 
     constructor() {
         // Initialize physics world
@@ -151,6 +153,9 @@ class PhysicsWorld {
     step() {
         this.updatePusher();
         this.world.step();
+
+        // Check for and remove fallen coins before getting positions
+        this.removeFallenCoins();
         
         // Get updated positions of all objects
         const positions: PhysicsObject[] = [];
@@ -188,6 +193,25 @@ class PhysicsWorld {
         });
         
         return positions;
+    }
+
+    private removeFallenCoins() {
+        const coinsToRemove: string[] = [];
+
+        this.bodies.forEach((body, id) => {
+            const position = body.translation();
+            if (position.y < this.KILL_ZONE_Y) {
+                coinsToRemove.push(id);
+            }
+        });
+
+        coinsToRemove.forEach(id => {
+            const body = this.bodies.get(id);
+            if (body) {
+                this.world.removeRigidBody(body);
+                this.bodies.delete(id);
+            }
+        });
     }
 }
 
