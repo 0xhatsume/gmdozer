@@ -1,7 +1,7 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import CANNON from 'cannon';
+import * as CANNON from 'cannon-es';
 import cors from 'cors';
 
 interface PhysicsObject {
@@ -19,46 +19,75 @@ class PhysicsWorld {
         this.world = new CANNON.World();
         this.world.gravity.set(0, -9.81, 0);
         this.world.broadphase = new CANNON.NaiveBroadphase();
-        this.world.solver.iterations = 10;
+        (this.world.solver as CANNON.GSSolver).iterations = 10;
+        
+        // Create a default contact material for better collision handling
+        const defaultMaterial = new CANNON.Material('default');
+        const defaultContactMaterial = new CANNON.ContactMaterial(
+            defaultMaterial,
+            defaultMaterial,
+            {
+                friction: 0.3,
+                restitution: 0.7,
+            }
+        );
+        this.world.addContactMaterial(defaultContactMaterial);
         
         this.bodies = new Map();
         this.addPlatform();
     }
 
     addPlatform() {
+        const groundMaterial = new CANNON.Material('ground');
+        
         // Floor
         const floorShape = new CANNON.Box(new CANNON.Vec3(5, 0.25, 4));
-        const floorBody = new CANNON.Body({ mass: 0 }); // mass 0 makes it static
+        const floorBody = new CANNON.Body({ 
+            mass: 0,
+            material: groundMaterial
+        });
         floorBody.addShape(floorShape);
         floorBody.position.set(0, 0, 0);
         this.world.addBody(floorBody);
 
         // Back wall
         const backWallShape = new CANNON.Box(new CANNON.Vec3(5, 1, 0.1));
-        const backWallBody = new CANNON.Body({ mass: 0 });
+        const backWallBody = new CANNON.Body({ 
+            mass: 0,
+            material: groundMaterial
+        });
         backWallBody.addShape(backWallShape);
         backWallBody.position.set(0, 1, -4);
         this.world.addBody(backWallBody);
 
         // Left wall
         const leftWallShape = new CANNON.Box(new CANNON.Vec3(0.1, 1, 4));
-        const leftWallBody = new CANNON.Body({ mass: 0 });
+        const leftWallBody = new CANNON.Body({ 
+            mass: 0,
+            material: groundMaterial
+        });
         leftWallBody.addShape(leftWallShape);
         leftWallBody.position.set(-5, 1, 0);
         this.world.addBody(leftWallBody);
 
         // Right wall
         const rightWallShape = new CANNON.Box(new CANNON.Vec3(0.1, 1, 4));
-        const rightWallBody = new CANNON.Body({ mass: 0 });
+        const rightWallBody = new CANNON.Body({ 
+            mass: 0,
+            material: groundMaterial
+        });
         rightWallBody.addShape(rightWallShape);
         rightWallBody.position.set(5, 1, 0);
         this.world.addBody(rightWallBody);
     }
 
     addCoin(coin: Coin) {
-        const shape = new CANNON.Cylinder(0.4, 0.4, 0.1, 16); // radius top, radius bottom, height, segments
+        const coinMaterial = new CANNON.Material('coin');
+        
+        const shape = new CANNON.Cylinder(0.4, 0.4, 0.1, 32);
         const body = new CANNON.Body({
             mass: 1,
+            material: coinMaterial,
             linearDamping: 0.5,
             angularDamping: 0.5
         });
@@ -66,15 +95,20 @@ class PhysicsWorld {
         body.addShape(shape);
         body.position.set(coin.position[0], coin.position[1], coin.position[2]);
         
-        // Rotate cylinder to stand vertically (Cannon.js cylinders are horizontal by default)
         const quat = new CANNON.Quaternion();
         quat.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
         body.quaternion.copy(quat);
 
-        const coinMaterial = new CANNON.Material("coinMaterial");
-        coinMaterial.friction = 0.5;
-        coinMaterial.restitution = 0.8;
-        body.material = coinMaterial;
+        // Add contact material for coin-ground interaction
+        const coinGroundContact = new CANNON.ContactMaterial(
+            coinMaterial,
+            this.world.defaultMaterial,
+            {
+                friction: 0.5,
+                restitution: 0.8
+            }
+        );
+        this.world.addContactMaterial(coinGroundContact);
 
         this.world.addBody(body);
         this.bodies.set(coin.id, body);
