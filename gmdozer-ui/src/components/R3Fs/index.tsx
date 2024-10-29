@@ -30,16 +30,24 @@ export const Coin: React.FC<CoinProps> = React.memo(({ position, rotation }) => 
     //const meshRef = useRef<Mesh>(null);
     const meshRef = useRef<Mesh>(null);
     const targetPos = useRef(position);
+    const targetRot = useRef(rotation);
 
     useEffect(() => {
         targetPos.current = position;
-    }, [position]);
+        targetRot.current = rotation;
+    }, [position, rotation]);
 
     useFrame(() => {
         if (meshRef.current) {
             const currentPos = meshRef.current.position.toArray() as [number, number, number];
             const interpolatedPos = lerpVector3(currentPos, targetPos.current, 0.3);
+            
+            // Rotation interpolation
+            const currentRot = meshRef.current.rotation.toArray().slice(0, 3) as [number, number, number];
+            const interpolatedRot = lerpVector3(currentRot, targetRot.current, 0.5);
+
             meshRef.current.position.set(...interpolatedPos);
+            meshRef.current.rotation.set(...interpolatedRot);
         }
     });
 

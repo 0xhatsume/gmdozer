@@ -19,7 +19,7 @@ class PhysicsWorld {
         this.world = new CANNON.World();
         this.world.gravity.set(0, -9.81, 0);
         this.world.broadphase = new CANNON.NaiveBroadphase();
-        (this.world.solver as CANNON.GSSolver).iterations = 10;
+        (this.world.solver as CANNON.GSSolver).iterations = 20;
         
         // Create a default contact material for better collision handling
         const defaultMaterial = new CANNON.Material('default');
@@ -28,7 +28,7 @@ class PhysicsWorld {
             defaultMaterial,
             {
                 friction: 0.3,
-                restitution: 0.7,
+                restitution: 1.2,
             }
         );
         this.world.addContactMaterial(defaultContactMaterial);
@@ -88,15 +88,15 @@ class PhysicsWorld {
         const body = new CANNON.Body({
             mass: 1,
             material: coinMaterial,
-            linearDamping: 0.5,
-            angularDamping: 0.5
+            linearDamping: 0.2,
+            angularDamping: 0.2,
         });
         
         body.addShape(shape);
         body.position.set(coin.position[0], coin.position[1], coin.position[2]);
         
         const quat = new CANNON.Quaternion();
-        quat.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
+        //quat.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
         body.quaternion.copy(quat);
 
         // Add contact material for coin-ground interaction
@@ -119,10 +119,14 @@ class PhysicsWorld {
         
         const positions: PhysicsObject[] = [];
         this.bodies.forEach((body, id) => {
+            // Convert quaternion to Euler angles
+            const euler = new CANNON.Vec3();
+            body.quaternion.toEuler(euler);
+
             positions.push({
                 id,
                 position: [body.position.x, body.position.y, body.position.z],
-                rotation: [body.quaternion.x, body.quaternion.y, body.quaternion.z],
+                rotation: [euler.x, euler.y, euler.z],
                 type: 'coin'
             });
         });

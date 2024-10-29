@@ -67,18 +67,28 @@ class PhysicsWorld {
     addCoin(coin:Coin) {
         const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(coin.position[0], coin.position[1], coin.position[2])
-        .setLinearDamping(0.5)    // Add damping to reduce bouncing
-        .setAngularDamping(0.5);  // Add rotational damping;
+        .setLinearDamping(0.6)    // Add damping to reduce bouncing
+        .setAngularDamping(1);  // Add rotational damping;
         
         const rigidBody = this.world.createRigidBody(rigidBodyDesc);        
         
+        // // Rotate the cylinder to lay flat (90 degrees around X axis)
+        // const rotation = new RAPIER.Quaternion(
+        //     Math.sin(Math.PI / 2), // x
+        //     0,                     // y
+        //     0,                     // z
+        //     Math.cos(Math.PI / 2)  // w
+        // );
+        // rigidBody.setRotation(rotation, false);
+
         // Adjust cylinder dimensions to match visual coin
         // args: halfHeight, radius
         const colliderDesc = RAPIER.ColliderDesc
             .cylinder(0.05, 0.4)  // [height/2, radius]
-            .setRestitution(0.8)      // Bounciness
-            .setFriction(0.5)         // Surface friction
-            .setDensity(2)         // Mass density
+            .setRestitution(0.5)      // Bounciness
+            .setFriction(0.3)         // Surface friction
+            .setDensity(20)         // Mass density
+            .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Max);  // Use maximum friction
             ;
         
         this.world.createCollider(colliderDesc, rigidBody);
@@ -93,10 +103,21 @@ class PhysicsWorld {
         this.bodies.forEach((body, id) => {
             const position = body.translation();
             const rotation = body.rotation();
+
+            // Convert quaternion to Euler angles
+            // Rapier quaternion is in (x, y, z, w) format
+            const euler = {
+                x: Math.atan2(2 * (rotation.w * rotation.x + rotation.y * rotation.z), 
+                             1 - 2 * (rotation.x * rotation.x + rotation.y * rotation.y)),
+                y: Math.asin(2 * (rotation.w * rotation.y - rotation.z * rotation.x)),
+                z: Math.atan2(2 * (rotation.w * rotation.z + rotation.x * rotation.y),
+                             1 - 2 * (rotation.y * rotation.y + rotation.z * rotation.z))
+            };
+
             positions.push({
                 id,
                 position: [position.x, position.y, position.z],
-                rotation: [rotation.x, rotation.y, rotation.z],
+                rotation: [euler.x, euler.y, euler.z],
                 type: 'coin'
             });
         });
