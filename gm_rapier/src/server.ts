@@ -16,6 +16,11 @@ interface PhysicsObject {
 class PhysicsWorld {
     private world!: RAPIER.World;
     private bodies!: Map<string, RAPIER.RigidBody>;
+    private pusherBody!: RAPIER.RigidBody;
+    private pusherForward: boolean = true;
+    private readonly PUSHER_SPEED = 1.0;
+    private readonly PUSHER_MIN_Z = -3.0;
+    private readonly PUSHER_MAX_Z = -1.0;
 
     constructor() {
         // Initialize physics world
@@ -31,6 +36,7 @@ class PhysicsWorld {
             this.bodies = new Map();
             // Add static platform and walls
             this.addPlatform();
+            this.addPusher();
         });
     }
 
@@ -66,6 +72,42 @@ class PhysicsWorld {
         const rightWallColliderDesc = RAPIER.ColliderDesc.cuboid(0.1, 1.0, 4.0) // [0.2/2, 2/2, 8/2]
             .setTranslation(5, 1, 0);
         this.world.createCollider(rightWallColliderDesc, rightWallBody);
+    }
+
+    addPusher() {
+        const pusherBodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()
+            .setTranslation(0, 0.5, this.PUSHER_MIN_Z);
+        
+        this.pusherBody = this.world.createRigidBody(pusherBodyDesc);
+        
+        const pusherColliderDesc = RAPIER.ColliderDesc.cuboid(4.0, 0.1, 2.0)
+            .setFriction(0.8)
+            .setRestitution(0.2);
+        
+        this.world.createCollider(pusherColliderDesc, this.pusherBody);
+    }
+
+    updatePusher() {
+        const position = this.pusherBody.translation();
+        let newZ = position.z;
+
+        if (this.pusherForward) {
+            newZ += this.PUSHER_SPEED * (1/60); // Move forward
+            if (newZ >= this.PUSHER_MAX_Z) {
+                this.pusherForward = false;
+            }
+        } else {
+            newZ -= this.PUSHER_SPEED * (1/60); // Move backward
+            if (newZ <= this.PUSHER_MIN_Z) {
+                this.pusherForward = true;
+            }
+        }
+
+        this.pusherBody.setNextKinematicTranslation({
+            x: position.x,
+            y: position.y,
+            z: newZ
+        });
     }
 
     addCoin(coin:Coin) {
@@ -107,10 +149,22 @@ class PhysicsWorld {
     }
 
     step() {
+        this.updatePusher();
         this.world.step();
         
         // Get updated positions of all objects
         const positions: PhysicsObject[] = [];
+
+        // Add pusher position
+        const pusherPos = this.pusherBody.translation();
+        const pusherRot = this.pusherBody.rotation();
+        positions.push({
+            id: 'pusher',
+            position: [pusherPos.x, pusherPos.y, pusherPos.z],
+            rotation: [0, 0, 0],
+            type: 'platform'
+        });
+
         this.bodies.forEach((body, id) => {
             const position = body.translation();
             const rotation = body.rotation();

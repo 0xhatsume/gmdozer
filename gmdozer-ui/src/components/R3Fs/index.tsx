@@ -6,6 +6,7 @@ import { lerpVector3 } from '../../utils';
 
 export { CameraDebug } from './CameraDebug';
 export { Platform } from './Platform';
+export { Pusher } from './Pusher';
 export { CameraControls } from './CameraControls';
 
 export interface PhysicsObject {

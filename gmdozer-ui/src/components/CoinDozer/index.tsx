@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import io, { Socket } from 'socket.io-client';
-import { Coin, CoinType, PhysicsObject, Platform, CameraDebug, CameraControls } from '../R3Fs';
+import { Coin, CoinType, PhysicsObject, Platform, Pusher, CameraDebug, CameraControls } from '../R3Fs';
 //import { Physics } from '@react-three/rapier';
 
 const socket: Socket = io('http://localhost:4000');
@@ -15,6 +15,8 @@ export const CoinDozer: React.FC = React.memo(() => {
       const rafRef = useRef<number>();
       // Visual state that triggers renders
       const [coins, setCoins] = useState<CoinType[]>([]);
+      
+      const [pusherPosition, setPusherPosition] = useState<[number, number, number]>([0, 0.5, -3]);
 
       // Log only on mount
       useEffect(() => {
@@ -23,6 +25,13 @@ export const CoinDozer: React.FC = React.memo(() => {
 
       // Use useCallback for event handlers
       const handlePhysicsUpdate = useCallback((state: PhysicsObject[]) => {
+        
+        // Handle pusher position
+        const pusher = state.find(obj => obj.id === 'pusher');
+        if (pusher) {
+            setPusherPosition(pusher.position);
+        }
+
         const coins = state.filter((obj: PhysicsObject) => obj.type === 'coin')
           .map((c)=>{
             return {
@@ -125,7 +134,8 @@ export const CoinDozer: React.FC = React.memo(() => {
                   
                   {/* Add Platform */}
                   <Platform />
-                  
+                  <Pusher position={pusherPosition} />
+
                   {/* Coins */}
                   {coins?.map((coin) => (
                     <Coin 
