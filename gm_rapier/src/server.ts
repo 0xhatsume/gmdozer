@@ -23,8 +23,12 @@ class PhysicsWorld {
             const gravity = { x: 0.0, y: -9.81, z: 0.0 };
             this.world = new RAPIER.World(gravity);
 
-            this.bodies = new Map();
+            // Add solver iterations for better stability
+            //this.world.maxVelocityIterations = 8;  // Default is 4
+            //this.world.maxPositionIterations = 4;  // Default is 1
 
+
+            this.bodies = new Map();
             // Add static platform and walls
             this.addPlatform();
         });
@@ -68,8 +72,13 @@ class PhysicsWorld {
         const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(coin.position[0], coin.position[1], coin.position[2])
         .setLinearDamping(0.6)    // Add damping to reduce bouncing
-        .setAngularDamping(1);  // Add rotational damping;
-        
+        .setAngularDamping(4);  // Add rotational damping;
+        // .setAdditionalMassProperties(    // Add more mass stability
+        //     1.0,                         // Mass
+        //     { x: 0, y: 0, z: 0 },       // Center of mass
+        //     { x: 1, y: 1, z: 1 }        // Principal angular inertia
+        // );
+
         const rigidBody = this.world.createRigidBody(rigidBodyDesc);        
         
         // // Rotate the cylinder to lay flat (90 degrees around X axis)
@@ -89,6 +98,8 @@ class PhysicsWorld {
             .setFriction(0.3)         // Surface friction
             .setDensity(20)         // Mass density
             .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Max);  // Use maximum friction
+            //.setFrictionCombineRule(RAPIER.CoefficientCombineRule.Max)
+            //.setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min);  // Minimize bouncing
             ;
         
         this.world.createCollider(colliderDesc, rigidBody);

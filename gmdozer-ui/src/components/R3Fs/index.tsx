@@ -31,8 +31,24 @@ export const Coin: React.FC<CoinProps> = React.memo(({ position, rotation }) => 
     const meshRef = useRef<Mesh>(null);
     const targetPos = useRef(position);
     const targetRot = useRef(rotation);
+    //const prevRot = useRef(rotation);  // Track previous rotation
+
 
     useEffect(() => {
+        // targetPos.current = position;
+        
+        // // Normalize rotation changes to prevent sudden flips
+        // const normalizedRotation: [number, number, number] = rotation.map((rot, i) => {
+        //     const prev = prevRot.current[i];
+        //     const diff = rot - prev;
+        //     // Normalize to [-π, π]
+        //     const normalized = prev + (((diff + Math.PI) % (2 * Math.PI)) - Math.PI);
+        //     return normalized;
+        // }) as [number, number, number];
+        
+        // targetRot.current = normalizedRotation;
+        // prevRot.current = normalizedRotation;
+
         targetPos.current = position;
         targetRot.current = rotation;
     }, [position, rotation]);
@@ -43,11 +59,11 @@ export const Coin: React.FC<CoinProps> = React.memo(({ position, rotation }) => 
             const interpolatedPos = lerpVector3(currentPos, targetPos.current, 0.3);
             
             // Rotation interpolation
-            const currentRot = meshRef.current.rotation.toArray().slice(0, 3) as [number, number, number];
-            const interpolatedRot = lerpVector3(currentRot, targetRot.current, 0.5);
+            //const currentRot = meshRef.current.rotation.toArray().slice(0, 3) as [number, number, number];
+            //const interpolatedRot = lerpVector3(currentRot, targetRot.current, 0.5);
 
             meshRef.current.position.set(...interpolatedPos);
-            meshRef.current.rotation.set(...interpolatedRot);
+            //meshRef.current.rotation.set(...interpolatedRot);
         }
     });
 
