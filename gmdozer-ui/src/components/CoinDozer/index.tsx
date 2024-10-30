@@ -6,10 +6,25 @@ import { Coin, CoinType, PhysicsObject, Platform, Pusher, CameraDebug, CameraCon
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const socket: Socket = io(BACKEND_URL, {
-  transports: ['websocket'],
+  transports: ['websocket', 'polling'],
+  path: '/socket.io/',
   reconnection: true,
   reconnectionAttempts: 5,
-  reconnectionDelay: 1000
+  reconnectionDelay: 1000,
+  timeout: 20000,
+  forceNew: true
+});
+
+socket.on('connect_error', (error) => {
+  console.error('Connection Error:', error);
+});
+
+socket.on('connect', () => {
+  console.log('Connected to server');
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('Disconnected:', reason);
 });
 
 export const CoinDozer: React.FC = React.memo(() => {
