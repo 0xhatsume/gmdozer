@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -18,28 +21,50 @@ class PhysicsWorld {
     private bodies!: Map<string, RAPIER.RigidBody>;
     private pusherBody!: RAPIER.RigidBody;
     private pusherForward: boolean = true;
+    private isInitialized: boolean = false;
     private readonly PUSHER_SPEED = 1.0;
     private readonly PUSHER_MIN_Z = -3.0;
     private readonly PUSHER_MAX_Z = -1.0;
     private readonly KILL_ZONE_Y = -2.0;  // Height below which coins are removed
 
+    // Add public method to check initialization status
+    public getIsInitialized(): boolean {
+        return this.isInitialized;
+    }
 
     constructor() {
+        this.initialize();
         // Initialize physics world
-        RAPIER.init().then(() => {
+        // RAPIER.init().then(() => {
+        //     const gravity = { x: 0.0, y: -9.81, z: 0.0 };
+        //     this.world = new RAPIER.World(gravity);
+
+        //     // Add solver iterations for better stability
+        //     //this.world.maxVelocityIterations = 8;  // Default is 4
+        //     //this.world.maxPositionIterations = 4;  // Default is 1
+
+
+        //     this.bodies = new Map();
+        //     // Add static platform and walls
+        //     this.addPlatform();
+        //     this.addPusher();
+        // });
+    }
+
+    private async initialize() {
+        try {
+            await RAPIER.init();
             const gravity = { x: 0.0, y: -9.81, z: 0.0 };
             this.world = new RAPIER.World(gravity);
-
-            // Add solver iterations for better stability
-            //this.world.maxVelocityIterations = 8;  // Default is 4
-            //this.world.maxPositionIterations = 4;  // Default is 1
-
-
             this.bodies = new Map();
-            // Add static platform and walls
             this.addPlatform();
             this.addPusher();
-        });
+            this.isInitialized = true;
+            console.log('Physics world initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize physics world:', error);
+            this.isInitialized = false;
+        }
     }
 
     addPlatform() {
@@ -90,6 +115,7 @@ class PhysicsWorld {
     }
 
     updatePusher() {
+        if (!this.isInitialized) return;
         const position = this.pusherBody.translation();
         let newZ = position.z;
 
@@ -113,6 +139,7 @@ class PhysicsWorld {
     }
 
     addCoin(coin:Coin) {
+        if (!this.isInitialized) return;
         const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(coin.position[0], coin.position[1], coin.position[2])
         .setLinearDamping(0.6)    // Add damping to reduce bouncing
@@ -151,6 +178,16 @@ class PhysicsWorld {
     }
 
     step() {
+
+        if (!this.isInitialized) {
+            return [{
+                id: 'pusher',
+                position: [0, 0.5, -3],
+                rotation: [0, 0, 0],
+                type: 'platform'
+            }];
+        }
+
         this.updatePusher();
         this.world.step();
 
@@ -217,26 +254,85 @@ class PhysicsWorld {
 
 
 const app = express();
-app.use(cors());
+//app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST']
+}));
+
+// Add a health check endpoint
+app.get('/_ah/health', (req, res) => {
+    if (physicsWorld.getIsInitialized()) {
+        res.status(200).send('OK');
+    } else {
+        res.status(503).send('Initializing');
+    }
+});
+
+app.get('/ping', (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'pong',
+        timestamp: new Date(),
+        initialized: physicsWorld.getIsInitialized()
+    });
+});
+
+// Add error handling
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-    }
+        origin: [
+            process.env.FRONTEND_URL || 'http://localhost:3000',
+            'https://gmdozer.vercel.app'
+        ],
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling'],
+    path: '/socket.io/',
+    allowEIO3: true
+});
+
+// Add better error handling for the server
+server.on('error', (error) => {
+    console.error('Server error:', error);
 });
 
 // Initialize physics
 const physicsWorld = new PhysicsWorld();
 
+let gameLoopInterval: NodeJS.Timeout;
+
+// Wait for physics to initialize before starting the game loop
+const startGameLoop = () => {
+    if (!physicsWorld.getIsInitialized()) {
+        setTimeout(startGameLoop, 100);
+        return;
+    }
+
+    // Run physics loop
+    const PHYSICS_STEP = 1000 / 60;
+    gameLoopInterval = setInterval(() => {
+        const positions = physicsWorld.step();
+        io.emit('physicsUpdate', positions);
+    }, PHYSICS_STEP);
+};
+
 // Run physics loop
-const PHYSICS_STEP = 1000 / 60; // 60 FPS
-setInterval(() => {
-    const positions = physicsWorld.step();
-    io.emit('physicsUpdate', positions);
-    //console.log("physicsUpdate: ", positions);
-}, PHYSICS_STEP);
+// const PHYSICS_STEP = 1000 / 60; // 60 FPS
+// setInterval(() => {
+//     const positions = physicsWorld.step();
+//     io.emit('physicsUpdate', positions);
+//     //console.log("physicsUpdate: ", positions);
+// }, PHYSICS_STEP);
 
 interface Coin {
     id: string;
@@ -247,21 +343,54 @@ interface Coin {
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
+    if (!physicsWorld.getIsInitialized()) {
+        socket.emit('error', { message: 'Server initializing, please try again in a moment' });
+        return;
+    }
+
     const initialState = physicsWorld.step();
     //socket.emit('initialState', globalGameState);
     socket.emit('initialState', initialState);
 
     socket.on('insertCoin', (coin: Coin) => {
+        if (!physicsWorld.getIsInitialized()) {
+            socket.emit('error', { message: 'Server not ready' });
+            return;
+        }
         //globalGameState.coins.push(coin);
         physicsWorld.addCoin(coin);
         //io.emit('updateGameState', globalGameState);
     });
 
-    socket.on('disconnect', () => {
-    console.log('A user disconnected:', socket.id);
+    socket.on('error', (error) => {
+        console.error('Socket error:', error);
+    });
+
+    socket.on('disconnect', (reason) => {
+        console.log('A user disconnected:', socket.id, 
+            'Reason:', reason);
     });
 });
 
-server.listen(4000, () => {
-    console.log('Server listening on port 4000');
+// Add WebSocket connection error handling
+io.on('connect_error', (err) => {
+    console.error('Socket connection error:', err);
+});
+
+const PORT = process.env.PORT || 8081;
+server.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+    startGameLoop();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Shutting down gracefully...');
+    if (gameLoopInterval) {
+        clearInterval(gameLoopInterval);
+    }
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
 });
