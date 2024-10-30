@@ -19,12 +19,15 @@ handlers:
   - url: /socket.io/.*
     script: auto
     secure: always
-    redirect_http_response_code: 301
+    http_headers:
+      Access-Control-Allow-Origin: "*"
+      Access-Control-Allow-Methods: "GET, POST, OPTIONS"
+      Access-Control-Allow-Headers: "Content-Type, Authorization"
+      Access-Control-Allow-Credentials: "true"
 
   - url: /.*
     script: auto
     secure: always
-    redirect_http_response_code: 301
 
 vpc_access_connector:
   name: "projects/gmdozer/locations/asia-east1/connectors/gmdozervpc"

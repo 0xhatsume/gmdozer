@@ -9,7 +9,7 @@
     "dev": "ts-node src/server.ts",
     "clean": "rm -rf dist",
     "deploy:preview": "npm run clean && npm run build && gcloud app deploy --no-promote",
-    "deploy": "npm run clean && npm run build && gcloud app deploy",
+    "deploy": "npm run clean && npm run build && gcloud app deploy --verbosity=debug",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {

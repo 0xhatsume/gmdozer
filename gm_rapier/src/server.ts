@@ -256,8 +256,11 @@ class PhysicsWorld {
 const app = express();
 //app.use(cors());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST']
+    // origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    // methods: ['GET', 'POST']
+    origin: '*',  // More permissive for testing
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true
 }));
 
 // Add a health check endpoint
@@ -284,21 +287,24 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     res.status(500).send('Something broke!');
 });
 
+// Add OPTIONS handling for preflight requests
+app.options('*', cors());
+
+
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: [
-            process.env.FRONTEND_URL || 'http://localhost:3000',
-            'https://gmdozer.vercel.app'
-        ],
-        methods: ['GET', 'POST'],
-        credentials: true
+        origin: '*',  // More permissive for testing
+        methods: ['GET', 'POST', 'OPTIONS'],
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization']
     },
+    transports: ['polling', 'websocket'],
+    path: '/socket.io/',
     pingTimeout: 60000,
     pingInterval: 25000,
-    transports: ['websocket', 'polling'],
-    path: '/socket.io/',
-    allowEIO3: true
+    allowEIO3: true,
+    connectTimeout: 45000
 });
 
 // Add better error handling for the server
@@ -340,8 +346,24 @@ interface Coin {
     rotation: [number, number, number];
 }
 
+// Add detailed logging
+io.engine.on("connection_error", (err) => {
+    console.log("Connection Error:", {
+        message: err.message,
+        context: err.context,
+        req: err.req?.url
+    });
+});
+
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
+
+    console.log('New client connected', {
+        id: socket.id,
+        transport: socket.conn.transport.name,
+        headers: socket.handshake.headers,
+        query: socket.handshake.query
+    });
 
     if (!physicsWorld.getIsInitialized()) {
         socket.emit('error', { message: 'Server initializing, please try again in a moment' });
