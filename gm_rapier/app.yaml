@@ -14,16 +14,12 @@ env_variables:
   FRONTEND_URL: "https://gmdozer.vercel.app"
   PORT: "8081"
   NODE_ENV: "production"
+  CORS_ORIGIN: "*"
 
 handlers:
   - url: /socket.io/.*
     script: auto
     secure: always
-    http_headers:
-      Access-Control-Allow-Origin: "*"
-      Access-Control-Allow-Methods: "GET, POST, OPTIONS"
-      Access-Control-Allow-Headers: "Content-Type, Authorization"
-      Access-Control-Allow-Credentials: "true"
 
   - url: /.*
     script: auto

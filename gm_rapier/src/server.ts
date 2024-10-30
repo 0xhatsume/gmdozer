@@ -258,9 +258,10 @@ const app = express();
 app.use(cors({
     // origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     // methods: ['GET', 'POST']
-    origin: '*',  // More permissive for testing
+    origin: process.env.CORS_ORIGIN || '*',
     methods: ['GET', 'POST', 'OPTIONS'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Add a health check endpoint
@@ -294,17 +295,12 @@ app.options('*', cors());
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*',  // More permissive for testing
-        methods: ['GET', 'POST', 'OPTIONS'],
-        credentials: true,
-        allowedHeaders: ['Content-Type', 'Authorization']
+        origin: '*',  // In production, specify your frontend URL
+        methods: ['GET', 'POST'],
+        credentials: true
     },
-    transports: ['polling', 'websocket'],
-    path: '/socket.io/',
     pingTimeout: 60000,
-    pingInterval: 25000,
-    allowEIO3: true,
-    connectTimeout: 45000
+    pingInterval: 25000
 });
 
 // Add better error handling for the server
