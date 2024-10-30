@@ -4,7 +4,13 @@ import io, { Socket } from 'socket.io-client';
 import { Coin, CoinType, PhysicsObject, Platform, Pusher, CameraDebug, CameraControls } from '../R3Fs';
 //import { Physics } from '@react-three/rapier';
 
-const socket: Socket = io('http://localhost:4000');
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const socket: Socket = io(BACKEND_URL, {
+  transports: ['websocket'],
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000
+});
 
 export const CoinDozer: React.FC = React.memo(() => {
       //console.log("CoinDozer Component");
