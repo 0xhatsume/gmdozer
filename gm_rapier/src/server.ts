@@ -397,6 +397,18 @@ io.on('connection', (socket) => {
         //io.emit('updateGameState', globalGameState);
     });
 
+    socket.on('resetMachine', () => {
+        if (!physicsWorld.getIsInitialized()) {
+            socket.emit('error', { message: 'Server not ready' });
+            return;
+        }
+        console.log('Resetting machine');
+        physicsWorld.reset();
+        // Emit empty state after reset
+        const resetState = physicsWorld.step();
+        io.emit('physicsUpdate', resetState);
+    });
+
     socket.on('error', (error) => {
         console.error('Socket error:', error);
     });

@@ -187,42 +187,10 @@ export const CoinDozer: React.FC = React.memo(() => {
       }, []);
 
       return (
-        <div className="w-full h-screen flex flex-col items-center justify-center">
-          <div className="w-4/5 mb-4 gap-x-1 flex flex-row items-center justify-start">
-            <button
-                  className={`px-4 py-2 rounded text-white ${
-                      pingStatus.status === 'loading' 
-                          ? 'bg-yellow-500' 
-                          : pingStatus.status === 'success'
-                          ? 'bg-green-500'
-                          : pingStatus.status === 'error'
-                          ? 'bg-red-500'
-                          : 'bg-blue-500'
-                  }`}
-                  onClick={testServerConnection}
-                  disabled={pingStatus.status === 'loading'}
-              >
-                  Server Connection
-              </button>
-            
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={insertCoin}
-            >
-              Insert Coin
-            </button>
-
-            {/* Add Reset Button */}
-            <button
-                className="bg-red-500 text-white px-4 py-2 rounded"
-                onClick={resetMachine}
-            >
-                Reset Machine
-            </button>
-
-          </div>
+        <div className="w-full h-[100dvh] flex flex-col bg-gray-900">
           
-          <div className="w-4/5 h-4/5 relative">
+          {/* Game Canvas - Takes most of the screen */}
+          <div className="flex-grow relative">
               <div 
                 id="camera-debug"
                 className="absolute top-0 left-0 
@@ -230,7 +198,7 @@ export const CoinDozer: React.FC = React.memo(() => {
                 p-4 rounded font-mono text-sm z-10"
               />
               <Canvas 
-              className="w-fullh-full bg-gray-200 border-2 border-gray-300 rounded-lg"
+              className="w-full h-full bg-gray-200 border-2 border-gray-300 rounded-lg"
               camera={{ 
                 position: [0, 8.34, 6.44], 
                 fov: 70 }}
@@ -266,6 +234,42 @@ export const CoinDozer: React.FC = React.memo(() => {
                 {/* </Physics> */}
               </Canvas>
             </div>
+
+            {/* Control Panel - Fixed at bottom */}
+            <div className="w-full bg-gray-800 p-4 flex justify-around items-center gap-2">
+                <button
+                      className={`px-4 py-2 rounded text-white ${
+                          pingStatus.status === 'loading' 
+                              ? 'bg-yellow-500' 
+                              : pingStatus.status === 'success'
+                              ? 'bg-green-500'
+                              : pingStatus.status === 'error'
+                              ? 'bg-red-500'
+                              : 'bg-blue-500'
+                      }`}
+                      onClick={testServerConnection}
+                      disabled={pingStatus.status === 'loading'}
+                  >
+                    Server Connection
+                </button>
+                
+                <button
+                    className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg active:bg-blue-700 text-lg font-semibold shadow-lg"
+                    onClick={insertCoin}
+                >
+                    Insert Coin
+                </button>
+                
+                <button
+                    className="w-12 h-12 bg-red-600 text-white rounded-full flex items-center justify-center active:bg-red-700 shadow-lg"
+                    onClick={resetMachine}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
+            
         </div>
       );
 });
