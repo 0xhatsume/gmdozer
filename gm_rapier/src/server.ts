@@ -32,6 +32,22 @@ class PhysicsWorld {
         return this.isInitialized;
     }
 
+    public reset() {
+        if (!this.isInitialized) return;
+        
+        // Remove all coins
+        this.bodies.forEach((body, id) => {
+            this.world.removeRigidBody(body);
+        });
+        this.bodies.clear();
+
+        // Reset pusher position
+        this.pusherBody.setTranslation({ x: 0, y: 0.5, z: this.PUSHER_MIN_Z }, true);
+        this.pusherForward = true;
+
+        console.log('Physics world reset');
+    }
+
     constructor() {
         this.initialize();
         // Initialize physics world
