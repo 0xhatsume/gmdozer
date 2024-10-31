@@ -14,8 +14,7 @@ const socket: Socket = io(BACKEND_URL, {
   reconnectionDelay: 1000,
   timeout: 20000,
   forceNew: true,
-  withCredentials: true,
-  autoConnect: false  // Don't connect automatically
+  withCredentials: false
 });
 
 export const CoinDozer: React.FC = React.memo(() => {
