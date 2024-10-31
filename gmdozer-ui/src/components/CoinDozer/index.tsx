@@ -7,14 +7,15 @@ import { Coin, CoinType, PhysicsObject, Platform, Pusher, CameraDebug, CameraCon
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 // Update Socket.IO configuration
 const socket: Socket = io(BACKEND_URL, {
-  transports: ['polling', 'websocket'],  // Try polling first, then upgrade to websocket
-  path: '/socket.io/',
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  timeout: 20000,
-  forceNew: true,
-  withCredentials: false
+  transports: ['polling', 'websocket'],
+    path: '/socket.io/',
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    timeout: 20000,
+    withCredentials: false,
+    forceNew: true,
+    autoConnect: false  // We'll manually connect
 });
 
 export const CoinDozer: React.FC = React.memo(() => {
