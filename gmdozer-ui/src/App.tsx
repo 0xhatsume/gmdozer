@@ -26,7 +26,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="App bg-gray-900 min-h-screen">
+    <div className="w-full h-screen m-0 p-0 overflow-hidden bg-gray-900">
       <CoinDozer />
     </div>
   );

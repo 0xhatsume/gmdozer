@@ -187,10 +187,10 @@ export const CoinDozer: React.FC = React.memo(() => {
       }, []);
 
       return (
-        <div className="w-full h-[100dvh] flex flex-col bg-gray-900">
+        <div className="w-full h-full flex flex-col">
           
           {/* Game Canvas - Takes most of the screen */}
-          <div className="flex-grow relative">
+          <div className="flex-1 min-h-0 relative">
               <div 
                 id="camera-debug"
                 className="absolute top-0 left-0 
